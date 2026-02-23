@@ -26,26 +26,44 @@ def get_full_context():
             print(f"DEBUG: Manuals directory not found at {MANUALS_DIR}")
             return ""
 
-        print("Loading PDF manuals...")
-        # Use simpler glob to ensure we find files
-        loader = DirectoryLoader(MANUALS_DIR, glob="**/*.pdf", loader_cls=PyPDFLoader)
-        documents = loader.load()
+        print("Loading PDF manuals locally...")
+        manual_files = [f for f in os.listdir(MANUALS_DIR) if f.lower().endswith('.pdf')]
+        
+        # Deduplicate by basename (ignore case/extension) or size to skip redundant versions
+        seen_sizes = set()
+        unique_manuals = []
+        for f in manual_files:
+            f_path = os.path.join(MANUALS_DIR, f)
+            f_size = os.path.getsize(f_path)
+            if f_size not in seen_sizes:
+                seen_sizes.add(f_size)
+                unique_manuals.append(f_path)
+            else:
+                print(f"DEBUG: Skipping redundant manual '{f}' (size mismatch or identical to already loaded)")
 
-        if not documents:
+        all_pages = []
+        for f_path in unique_manuals:
+            try:
+                print(f"DEBUG: Parsing {os.path.basename(f_path)}...")
+                loader = PyPDFLoader(f_path)
+                all_pages.extend(loader.load())
+            except Exception as e:
+                print(f"DEBUG: Failed to parse {f_path}: {e}")
+
+        if not all_pages:
             print("DEBUG: No documents were found/loaded from manuals directory")
             return ""
             
         # Format: "Page 1: Content..."
         formatted_pages = []
-        for doc in documents:
-            # PyPDFLoader is 0-indexed, but humans and URL fragments use 1-indexed.
+        for doc in all_pages:
             page_num = doc.metadata.get('page', 0) + 1 
             source = os.path.basename(doc.metadata.get('source', 'Manual'))
             content = doc.page_content.replace('\n', ' ')
             formatted_pages.append(f"[[Source: {source} | Page: {page_num}]]\n{content}\n")
             
         _full_context_cache = "\n".join(formatted_pages)
-        print(f"Loaded full context: {len(_full_context_cache)} chars from {len(documents)} pages")
+        print(f"Loaded full context: {len(_full_context_cache)} chars from {len(all_pages)} pages")
         return _full_context_cache
     except Exception as e:
         import traceback

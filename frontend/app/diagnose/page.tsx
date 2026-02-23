@@ -39,17 +39,21 @@ export default function DiagnosePage() {
                 body: formData,
             });
 
+            if (res.status === 504 || res.status === 502) {
+                throw new Error("サーバーが混み合っているか、マニュアルの解析に時間がかかっています。もう一度お試しいただくか、少しお待ちください。");
+            }
+
             if (!res.ok) {
-                throw new Error("Failed to diagnose");
+                throw new Error("診断に失敗しました。インターネット接続やAPIの設定、マニュアルの有無を確認してください。");
             }
 
             const data: DiagnoseResponse = await res.json();
             setDiagnosisData(data);
             handleGenerateVideo(text);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert("診断エラーが発生しました。");
+            alert(error.message || "診断エラーが発生しました。しばらく待ってから再度お試しください。");
         } finally {
             setLoading(false);
         }
@@ -97,7 +101,8 @@ export default function DiagnosePage() {
             {loading && (
                 <div className="flex flex-col items-center">
                     <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                    <p className="text-2xl text-gray-600 font-bold">マニュアルを確認しています (AI)...</p>
+                    <p className="text-2xl text-gray-600 font-bold">マニュアルから解決策を探しています...</p>
+                    <p className="text-gray-400 mt-2 animate-pulse">※初回や大きな質問は30秒ほどかかる場合があります</p>
                 </div>
             )}
 

@@ -110,7 +110,6 @@ def diagnose(
 def ingest_manual():
     from .rag import ingest_manuals
     msg = ingest_manuals()
-    msg = ingest_manuals()
     return {"status": "completed", "message": msg}
 
 @app.get("/api/status")
