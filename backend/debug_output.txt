@@ -1,0 +1,14 @@
+--- Checking Manuals ---
+Manuals found: ['test_upload.pdf', 'TS6330_GSQB_JP_V2.pdf', 'ts6330_manual.pdf']
+
+--- Checking Full Context ---
+Context Length: 86228 characters
+First 200 chars:
+[[Source: test_upload.pdf | Page: 1]]
+�����������
+
+[[Source: TS6330_GSQB_JP_V2.pdf | Page: 1]]
+設置・  基本操作  マニュアル オンラインマニュアルもあります。 本書のほかに、パソコンやスマートフォンか らインターネットに接続して読むオンライン マニュアルがあります。 本書は、いつでもお読みいただけるよ
+
+--- Attempting Cache Creation ---
+Cache creation returned None (Check rag.py logs/prints)

@@ -1,0 +1,14 @@
+--- Checking Manuals ---
+Manuals found: ['test_upload.pdf', 'TS6330_GSQB_JP_V2.pdf', 'ts6330_manual.pdf']
+
+--- Checking Full Context ---
+Loading PDF manuals...
+incorrect startxref pointer(1)
+parsing for Object Streams
+Loaded full context: 86228 chars
+Context Length: 86228 characters
+
+--- Attempting Cache Creation (using updated rag.py) ---
+Creating new Gemini Context Cache...
+Error creating cache: 429 TotalCachedContentStorageTokensPerModelFreeTier limit exceeded for model gemini-2.0-flash: limit=0, requested=43834
+Cache creation returned None
