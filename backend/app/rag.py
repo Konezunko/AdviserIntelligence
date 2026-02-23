@@ -149,8 +149,8 @@ def get_rag_diagnosis(query: str):
             if os.environ.get("GOOGLE_API_KEY"):
                 genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
-            # Fallback model: use standard gemini-1.5-flash which has high quotas
-            model = genai.GenerativeModel('models/gemini-flash-latest')
+            # Fallback model: use standard gemini-1.5-flash
+            model = genai.GenerativeModel('gemini-1.5-flash')
             print(f"[{time.time()}] Gemini Flash Fallback Prompting...", flush=True)
 
             prompt = f"""
@@ -222,7 +222,7 @@ def get_rag_diagnosis(query: str):
                 print(f"[{time.time()}] Fallback Generation Error: {e}")
                 import traceback
                 traceback.print_exc()
-                return {"probable_causes": ["Diagnosis failed (Fallback)"], "steps": ["Please try again."], "confidence": 0.0, "referenced_pages": [], "next_actions": {}, "cautions": [], "disclaimer": str(e)}
+                return {"probable_causes": ["Diagnosis failed (API Error)"], "steps": ["Please try again."], "confidence": 0.0, "referenced_pages": [], "next_actions": {}, "cautions": [], "disclaimer": f"Gemini Error: {str(e)}"}
 
         # Cached Path
         model = genai.GenerativeModel.from_cached_content(cached_content=cache)

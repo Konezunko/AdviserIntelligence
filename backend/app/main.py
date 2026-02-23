@@ -7,7 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List
 import json
 
-load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+# Load .env only if it exists (useful for local development)
+if os.path.exists(os.path.join(os.path.dirname(__file__), "..", ".env")):
+    load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+else:
+    print("DEBUG: .env file not found, skipping load_dotenv. Using system env vars.", flush=True)
 
 from .schemas import DiagnoseResponse
 
