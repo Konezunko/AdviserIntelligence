@@ -317,24 +317,25 @@ def get_video_script(query: str, persona: str = "Technical"):
         # Ideally we pass full context or the relevant parts.
         # For simplicity, let's pass context if fallback.
         
+        persona_style = {
+            "YouTuber": "ガジェット系YouTuber風に、テンション高めで「こんにちは！今日は〇〇の解決策をお届けします！」と始めてください。",
+            "Teacher": "ベテラン技術講師風に、落ち着いたトーンで「それでは解説を始めましょう」と始めてください。",
+            "Technical": "親しみやすいラジオMC風に、共感を示しながら始めてください。"
+        }.get(persona, "親しみやすいラジオMC風に始めてください。")
+
         if not cache:
             full_context = get_full_context()
             prompt = f"""
             ユーザーの質問: {query}
             マニュアル情報: {full_context[:30000]}
             
-            これに対する親しみやすいラジオMC風の解説スクリプトを作成してください。
-            - 挨拶と共感から始める。
+            これに対する解説スクリプトを作成してください。
+            - {persona_style}
             - 具体的なページ番号に言及する。
             - 1分程度。
+            - 将来的な動画生成（Veo/Sora）のために、[Visual Prompt: 指示] の形式で、各シーンの視覚的な指示もスクリプトに含めてください。
             """
         else:
-            persona_style = {
-                "YouTuber": "ガジェット系YouTuber風に、テンション高めで「こんにちは！今日は〇〇の解決策をお届けします！」と始めてください。",
-                "Teacher": "ベテラン技術講師風に、落ち着いたトーンで「それでは解説を始めましょう」と始めてください。",
-                "Technical": "親しみやすいラジオMC風に、共感を示しながら始めてください。"
-            }.get(persona, "親しみやすいラジオMC風に始めてください。")
-
             prompt = f"""
             ユーザーの質問: {query}
             
