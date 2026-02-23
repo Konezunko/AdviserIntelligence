@@ -150,7 +150,7 @@ def get_rag_diagnosis(query: str):
                 genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
             # Fallback model: use standard gemini-1.5-flash
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('gemini-1.5-flash-latest')
             print(f"[{time.time()}] Gemini Flash Fallback Prompting...", flush=True)
 
             prompt = f"""
@@ -274,7 +274,7 @@ def get_video_script(query: str):
              print("Video Gen: Falling back to non-cached")
              if os.environ.get("GOOGLE_API_KEY"):
                 genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-             model = genai.GenerativeModel('models/gemini-flash-latest')
+             model = genai.GenerativeModel('gemini-1.5-flash-latest')
         
         # If fallback, we need context in prompt? 
         # Yes, if no cache, manual isn't loaded in model.
