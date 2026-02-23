@@ -4,6 +4,7 @@ import time
 from typing import List, Optional
 import google.generativeai as genai
 from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
+from .image_utils import extract_page_as_base64, get_manual_path
 # from google.generativeai.caching import CachedContent
 
 # Setup paths
@@ -139,9 +140,9 @@ def get_loaded_status():
         "is_gemini_cached": _gemini_cache is not None
     }
 
-def get_rag_diagnosis(query: str):
+def get_rag_diagnosis(query: str, persona: str = "Technical"):
     """
-    Diagnosis using Gemini Context Caching.
+    Diagnosis using Gemini with persona support and Visual RAG.
     """
     try:
         cache = _ensure_cache()
@@ -171,8 +172,15 @@ def get_rag_diagnosis(query: str):
             model = genai.GenerativeModel('gemini-flash-latest')
             print(f"[{time.time()}] Gemini Flash Fallback Prompting...", flush=True)
 
+            # Persona adjustment
+            persona_instruction = {
+                "YouTuber": "あなたは元気いっぱいのガジェット系YouTuberです。視聴者に語りかけるように、エネルギッシュでフレンドリーに応対してください。",
+                "Teacher": "あなたは親切なベテラン技術講師です。論理的で分かりやすく、敬語で丁寧に指導してください。",
+                "Technical": "あなたは Canon TS6330 の専門技術者です。正確かつ迅速な解決策をプロフェッショナルに提示してください。"
+            }.get(persona, "あなたは Canon TS6330 の専門技術者です。")
+
             prompt = f"""
-            あなたは Canon TS6330 の専門技術者です。
+            {persona_instruction}
             以下のマニュアルを使用して、ユーザーの問題: "{query}" を診断してください。
             
             マニュアル:
@@ -235,6 +243,15 @@ def get_rag_diagnosis(query: str):
                             pass
                     data["referenced_pages"] = new_pages
                 
+                # 3. Visual RAG: Extract diagram if possible
+                if data.get("referenced_pages") and data.get("source_file"):
+                    try:
+                        first_page = data["referenced_pages"][0]
+                        m_path = get_manual_path(data["source_file"])
+                        data["visual_page_base64"] = extract_page_as_base64(m_path, first_page)
+                    except Exception as ve:
+                        print(f"DEBUG: Visual RAG Error: {ve}")
+
                 return data
             except Exception as e:
                 print(f"[{time.time()}] Fallback Generation Error: {e}")
@@ -280,9 +297,9 @@ def get_rag_diagnosis(query: str):
         print(f"Outer Diagnosis Error: {e}")
         return {"probable_causes": ["System Error"], "steps": [], "confidence": 0, "referenced_pages": [], "next_actions": {}, "cautions": [], "disclaimer": str(e)}
 
-def get_video_script(query: str):
+def get_video_script(query: str, persona: str = "Technical"):
     """
-    Generates script using Gemini Context Caching or Fallback.
+    Generates persona-based script using Gemini Context Caching or Fallback.
     """
     try:
         cache = _ensure_cache()
@@ -312,13 +329,20 @@ def get_video_script(query: str):
             - 1分程度。
             """
         else:
-             prompt = f"""
+            persona_style = {
+                "YouTuber": "ガジェット系YouTuber風に、テンション高めで「こんにちは！今日は〇〇の解決策をお届けします！」と始めてください。",
+                "Teacher": "ベテラン技術講師風に、落ち着いたトーンで「それでは解説を始めましょう」と始めてください。",
+                "Technical": "親しみやすいラジオMC風に、共感を示しながら始めてください。"
+            }.get(persona, "親しみやすいラジオMC風に始めてください。")
+
+            prompt = f"""
             ユーザーの質問: {query}
             
-            これに対する親しみやすいラジオMC風の解説スクリプトを作成してください。
-            - 挨拶と共感から始める。
+            これに対する解説スクリプトを作成してください。
+            - {persona_style}
             - 具体的なページ番号に言及する。
             - 1分程度。
+            - 将来的な動画生成（Veo/Sora）のために、[Visual Prompt: 指示] の形式で、各シーンの視覚的な指示もスクリプトに含めてください。
             """
         
         response = model.generate_content(prompt)

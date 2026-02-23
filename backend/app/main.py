@@ -44,28 +44,29 @@ def read_root():
 # In-memory cache for video results (PoC)
 _video_cache = {}
 
-def process_video_background(query: str):
+def process_video_background(query: str, persona: str):
     """
     Background task to generate video assets.
     """
-    print(f"DEBUG: Starting background video generation for query='{query}'", flush=True)
+    print(f"DEBUG: Starting background video generation for query='{query}', persona='{persona}'", flush=True)
     try:
         from .rag import get_video_script
         from .video_gen import generate_audio, create_slides
         
-        script = get_video_script(query)
+        cache_key = f"{query}_{persona}"
+        script = get_video_script(query, persona=persona)
         if script:
             audio_b64 = generate_audio(script)
             slides = create_slides(script)
             
-            _video_cache[query] = {
+            _video_cache[cache_key] = {
                 "script": script,
                 "audio_base64": audio_b64,
                 "slides": slides
             }
-            print(f"DEBUG: Background video generation completed for query='{query}'", flush=True)
+            print(f"DEBUG: Background video generation completed for {cache_key}", flush=True)
         else:
-             print(f"DEBUG: Background script generation failed for query='{query}'", flush=True)
+             print(f"DEBUG: Background script generation failed for {cache_key}", flush=True)
     except Exception as e:
          print(f"DEBUG: Background video generation error: {e}", flush=True)
 
@@ -74,6 +75,7 @@ def diagnose(
     background_tasks: BackgroundTasks,
     query: str = Form(...),
     device: Optional[str] = Form("TS6330"),
+    persona: Optional[str] = Form("Technical"),
     image: Optional[UploadFile] = File(None)
 ):
     """
@@ -86,12 +88,12 @@ def diagnose(
         import uuid
         
         # If image is present, we might want to do something, but for now RAG depends on text
-        print(f"DEBUG: Calling get_rag_diagnosis with query='{query}'", flush=True)
-        result = get_rag_diagnosis(query)
+        print(f"DEBUG: Calling get_rag_diagnosis with query='{query}', persona='{persona}'", flush=True)
+        result = get_rag_diagnosis(query, persona=persona)
         print(f"DEBUG: get_rag_diagnosis returned type: {type(result)}", flush=True)
         
         # Add background task for video
-        background_tasks.add_task(process_video_background, query)
+        background_tasks.add_task(process_video_background, query, persona)
         
         # Enrich result
         result["video_status"] = "processing"
@@ -147,7 +149,7 @@ async def upload_manual(background_tasks: BackgroundTasks, file: UploadFile = Fi
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 @app.post("/api/generate_video")
-async def generate_video(query: str = Form(...)):
+async def generate_video(query: str = Form(...), persona: Optional[str] = Form("Technical")):
     """
     Generates an 'Audio Overview' video (slides + audio).
     """
@@ -155,12 +157,13 @@ async def generate_video(query: str = Form(...)):
     from .video_gen import generate_audio, create_slides
     
     # Check cache first
-    if query in _video_cache:
-        print(f"DEBUG: Returning cached video for query='{query}'", flush=True)
-        return _video_cache[query]
+    cache_key = f"{query}_{persona}"
+    if cache_key in _video_cache:
+        print(f"DEBUG: Returning cached video for {cache_key}", flush=True)
+        return _video_cache[cache_key]
 
     # 1. Generate Script (Dialogue)
-    script = get_video_script(query)
+    script = get_video_script(query, persona=persona)
     if not script:
         raise HTTPException(status_code=500, detail="Failed to generate script.")
 
@@ -171,7 +174,7 @@ async def generate_video(query: str = Form(...)):
     slides = create_slides(script)
     
     # Cache it
-    _video_cache[query] = {
+    _video_cache[cache_key] = {
         "script": script,
         "audio_base64": audio_b64,
         "slides": slides

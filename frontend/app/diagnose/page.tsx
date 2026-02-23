@@ -12,6 +12,8 @@ interface DiagnoseResponse {
     next_actions: any;
     disclaimer: string;
     referenced_pages: number[];
+    visual_page_base64?: string;
+    source_file?: string;
     request_id?: string;
 }
 
@@ -21,6 +23,7 @@ export default function DiagnosePage() {
     const [videoData, setVideoData] = useState<any>(null);
     const [query, setQuery] = useState("");
     const [videoLoading, setVideoLoading] = useState(false);
+    const [persona, setPersona] = useState("Technical"); // Technical, YouTuber, Teacher
 
     const handleTranscript = async (text: string) => {
         setQuery(text);
@@ -32,6 +35,7 @@ export default function DiagnosePage() {
         try {
             const formData = new FormData();
             formData.append('query', text);
+            formData.append('persona', persona);
 
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
             const res = await fetch(`${apiUrl}/api/diagnose`, {
@@ -49,7 +53,7 @@ export default function DiagnosePage() {
 
             const data: DiagnoseResponse = await res.json();
             setDiagnosisData(data);
-            handleGenerateVideo(text);
+            handleGenerateVideo(text, persona);
 
         } catch (error: any) {
             console.error(error);
@@ -59,12 +63,13 @@ export default function DiagnosePage() {
         }
     };
 
-    const handleGenerateVideo = async (currentQuery: string) => {
+    const handleGenerateVideo = async (currentQuery: string, currentPersona: string) => {
         if (!currentQuery) return;
         setVideoLoading(true);
         try {
             const formData = new FormData();
             formData.append('query', currentQuery);
+            formData.append('persona', currentPersona);
 
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
             const res = await fetch(`${apiUrl}/api/generate_video`, {
@@ -87,10 +92,27 @@ export default function DiagnosePage() {
 
     return (
         <div className="min-h-screen bg-sky-50 flex flex-col items-center py-12">
-            <h1 className="text-4xl font-bold text-gray-800 mb-8">お悩み解決 アドバイザー</h1>
+            <h1 className="text-4xl font-bold text-gray-800 mb-8 font-serif">Advisor Intelligence</h1>
 
             {!diagnosisData && !loading && (
                 <div className="flex flex-col items-center">
+                    <div className="flex gap-4 mb-8">
+                        {[
+                            { id: "Technical", label: "技術者モード", icon: "🔧" },
+                            { id: "YouTuber", label: "YouTuber風", icon: "🎥" },
+                            { id: "Teacher", label: "先生モード", icon: "🎓" }
+                        ].map((p) => (
+                            <button
+                                key={p.id}
+                                onClick={() => setPersona(p.id)}
+                                className={`px-6 py-3 rounded-2xl flex items-center gap-2 transition-all shadow-md ${persona === p.id ? 'bg-orange-500 text-white scale-105 ring-4 ring-orange-200' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                            >
+                                <span className="text-xl">{p.icon}</span>
+                                <span className="font-bold">{p.label}</span>
+                            </button>
+                        ))}
+                    </div>
+
                     <div className="bg-white p-12 rounded-3xl shadow-xl flex flex-col items-center">
                         <VoiceInput onTranscript={handleTranscript} />
                     </div>
@@ -140,6 +162,19 @@ export default function DiagnosePage() {
                                     <p className="text-sm text-gray-500 mt-2">
                                         参照: マニュアル {diagnosisData.referenced_pages.join(", ")} ページ
                                     </p>
+                                )}
+
+                                {diagnosisData.visual_page_base64 && (
+                                    <div className="mt-6 border rounded-xl overflow-hidden shadow-sm">
+                                        <p className="bg-gray-50 text-[10px] uppercase tracking-wider text-gray-400 px-3 py-1 border-b">
+                                            Manual Reference: {diagnosisData.source_file} (Page {diagnosisData.referenced_pages[0]})
+                                        </p>
+                                        <img
+                                            src={`data:image/png;base64,${diagnosisData.visual_page_base64}`}
+                                            alt="Manual Diagram"
+                                            className="w-full h-auto cursor-zoom-in hover:scale-[1.02] transition-transform"
+                                        />
+                                    </div>
                                 )}
                             </div>
                         </div>

@@ -15,5 +15,6 @@ class DiagnoseResponse(BaseModel):
     disclaimer: str
     referenced_pages: List[int] = []
     source_file: Optional[str] = None
+    visual_page_base64: Optional[str] = None
     video_status: Optional[str] = None
     request_id: Optional[str] = None
